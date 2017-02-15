@@ -1,0 +1,8 @@
+resource distlock_connect(string host_list, int session_timeout) 
+resource distlock_init(resource conn_handle, string lock_path)
+int distlock_lock(resource mutex, int timeout)
+int distlock_trylock(resource mutex)
+int distlock_unlock(resource mutex)
+int distlock_free(resource mutex)
+int distlock_disconnect(resource conn_handle)
+

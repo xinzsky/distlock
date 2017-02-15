@@ -1,0 +1,111 @@
+distlock 安装
+
+安装distlock之前需要部署zookeeper服务。
+
+zookeeper部署要求如下：
+(1)采用zookeeper的集群运行模式。
+(2)zookeeper集群至少有三台服务器，建议使用奇数个服务器。
+(3)不能部署到IO压力比较大的服务器上。
+(4)集群中每一台服务器都需要安装zookeeper。
+
+安装zookeeper
+----------------------
+zookeeper采用java开发，依赖java运行环境，需要安装JDK(1.6以上)。
+1.  安装JDK
+1.1 下载JDK: http://java.sun.com/javase/downloads/index.jsp
+1.2 直接解压解包到需要安装的目录下: tar zxf ...
+1.3 设置环境变量: /etc/profile
+    export JAVA_HOME=/usr/local/jdk1.7.0_10
+  	export CLASSPATH=.:$JAVA_HOME/lib:$JAVA_HOME/lib/tools.jar 
+  	export PATH=$JAVA_HOME/bin:$PATH 
+1.4 设置jvm heap大小，这个很重要，避免zookeeper出现数据交换，保守的设置是4G的机器，jvm heap设置为3G。
+
+2.  安装zookeeper
+2.1 下载：zookeeper.apache.org (官方网站)
+2.2 直接解压解包即可。
+
+3.  配置zookeeper
+    以集群中有三台服务器A B C为例：
+3.1 在每一台服务器zookeeper的conf目录下添加配置文件zoo.cfg，内容为：
+       tickTime=2000
+       initLimit=10
+       syncLimit=5
+       dataDir=/data/dir
+       dataLogDir=/data/log/dir
+       clientPort=2181
+       minSessionTimeout=4000  （单位:ms, 默认为2*tickTime）
+       maxSessionTimeout=40000 （单位:ms, 默认为20*tickTime）
+       server.1=ServerA_IP:30000:30001
+       server.2=ServerB_IP:30000:30001
+       server.3=ServerC_IP:30000:30001
+3.2 在每一台服务器zookeeper的dataDir目录下添加配置文件myid，内容为服务器编号。
+    例如服务器A的myid的取值为1。
+
+4.  运行zookeeper
+    命令：zkServer.sh
+    zkServer.sh {start|start-foreground|stop|restart|status|upgrade|print-cmd} [configuration file]
+
+5.  管理zookeeper
+    zookeeper提供一些管理命令，可以采用下面的方式来执行：
+    telnet host port
+    nc host port 
+    echo cmd | nc host port
+    命令如下：
+    conf  查看配置信息。
+    cons  查看所有connection/session的详细信息。
+    crst  重置所有connection/session的统计信息。
+    srst  Reset server statistics.
+    srvr  Lists full details for the server.
+    stat  Lists brief details for the server and connected clients.
+    dump  列出outstanding会话和临时节点，只能用于leader服务器。
+    envi  输出服务环境的详细信息。
+    ruok  测试服务是否处于正确状态。如果确实如此，那么服务返回imok，否则不做任何响应。
+    wchs  Lists brief information on watches for the server.
+    wchc  Lists detailed information on watches for the server, by session. 如果watch比较多，这个命令会影响性能。
+    wchp  Lists detailed information on watches for the server, by path. 如果watch比较多，这个命令会影响性能。
+    mntr  输出一些变量值，可以用来监控集群是否运行正常。
+
+6.  zookeeper客户端工具
+    zkCli.sh -server host:port 
+    输入help查看所有命令。
+    可以用来创建、删除节点，给节点赋值，查看节点等。
+
+7.  zookeeper维护
+    对于长期运行的生产系统，ZooKeeper的存储部分(dataDir and logs)需要维护。
+7.1 快照文件和日志文件清除
+    zookeeper在运行过程中会生成数据快照文件和事务日志文件，新的快照文件会替代老的快照文件，但zookeeper不会删除这些老的快照文件和日志文件。
+    PurgeTxnLog实用工具
+    java -cp zookeeper.jar:log4j.jar:conf org.apache.zookeeper.server.PurgeTxnLog <dataDir> <snapDir> -n <count>
+    PurgeTxnLog可以实现简单的保留策略: 
+    执行以上命令将会保留最后count个快照和它们相应的日志文件，其他文件将会被删除。count参数最好设置为3个以上。
+    可以把数据文件清理工作实用crontab来每天定期清理。
+    另外 zkCleanup.sh也可以用来清除数据。
+7.2 Debug log清除
+    zookeeper采用log4j来记录运行日志，最好设置成日志轮转。
+    
+安装distlock
+----------------------
+distlock是一个C语言开发的PHP扩展模块，它依赖zookeeper的C语言客户端库。
+
+1.  编译生成zookeeper库
+    cd zookeeper/src/c
+    ./configure
+    make
+    make install
+    生成的libzookeeper_mt.so.2.0.0默认安装在在/usr/local/lib目录下。
+    
+2.  编译安装distlock
+    phpize
+    ./configure --with-php-config=/path/php-config
+    make
+    make install
+    修改php.ini增加:
+    extension_dir="/distlock/dir"
+    extension=distlock.so
+    
+3.  检测是否安装正确
+    ldd distlock.so          检查libzookeeper_mt.so.2.0.0是否链接
+    php -m                   检查distlock模块是否加载
+ 
+4.  测试distlock
+    php tests/test.php       检查是否执行正确

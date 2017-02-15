@@ -1,0 +1,15 @@
+distlock
+
+2013.2.1
+ * add:     distlock_trylock() 加锁的非阻塞版本。
+ * modify:  distlock_lock(mutex,timeout) 加锁的阻塞版本增加超时机制。
+ * fix:     pthread_cond_signal() 修复发送的条件准备好的信号可能丢失的情况。
+ 
+2013.1
+ * fix:     修复zoo_lock.c/zkr_lock_lock()中内存泄露bug。
+ * fatal:   解决zoo_lock.c/child_floor()中致命错误。  
+ * add:     增加加锁的阻塞机制，最初加锁是不会阻塞的。
+ * add:     增加了PHP扩展模块，可以在php中使用。
+ 
+2012.12
+ * init:    最初版本来源于zookeeper-3.4.5，特别要注意的是zookeeper自带加锁实现有一些致命的错误和缺陷。
