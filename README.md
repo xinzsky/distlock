@@ -1,0 +1,45 @@
+#distlock
+distlock是一个C语言开发的PHP扩展模块，用于实现分布式加锁功能，位于不同服务器上的进程或任务可以通过distlock互斥的访问共享资源。
+
+##PHP API说明
+* resource distlock_connect(string host_list, int session_timeout)  
+  功能：连接zookeeper服务器。  
+  参数：  
+       host_list: zookeeper服务器列表，例如：127.0.0.1:2181,127.0.0.1:2182,127.0.0.1:2183。  
+       session_timeout: session超时，单位: ms，默认为10000ms。  
+   返回值：  
+       连接成功返回与zookeeper的连接句柄，连接失败返回NULL。  
+
+* resource distlock_init(resource conn_handle, string lock_path)  
+  功能：创建一把锁并初始化。  
+  参数：  
+        conn_handle: 与zookeeper的连接句柄。  
+        lock_path: 锁的节点路径。比如所有资金账户有关的锁都放在/account-locks目录下，资金账户123对应锁的路径为: /account-locks/123。  
+  返回值：  
+        创建锁成功返回一个互斥量mutex，创建失败返回NULL。
+
+* int distlock_lock(resource mutex, int timeout)  
+  参数：  
+      timeout表示阻塞超时，单位: 秒，timeout=0表示一直阻塞。  
+  功能：  
+      对锁进行加锁操作，加锁成功返回1，加锁失败返回0。如果该锁已经被锁则会阻塞，一直等到能够加锁成功或者超时。  
+      需要注意的是一定要检查返回结果来判断是否加锁成功。  
+
+* int distlock_trylock(resource mutex)  
+  功能：加锁的非阻塞版本，如果mutex已经被锁则立即返回，不会阻塞。加锁成功返回1，加锁失败返回0。  
+
+* int distlock_unlock(resource mutex)  
+  功能：对锁进行解锁操作，解锁成功返回1，解锁失败返回0。  
+  
+* int distlock_free(resource mutex)  
+  功能：销毁锁并释放所有资源。如果一把锁不需要使用了，记得要销毁。  
+  
+* int distlock_disconnect(resource conn_handle)  
+  功能：断开和zookeeper服务器的连接。  
+
+
+## API使用例子
+distlock API的使用可以参考tests/test.php。
+
+## 安装
+请参考INSTALL文档。
